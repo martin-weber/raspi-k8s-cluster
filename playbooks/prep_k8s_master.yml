@@ -1,0 +1,123 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+  - name: get docker installer
+    get_url: url=https://get.docker.com dest=/tmp/docker-install.sh
+
+  - name: run docker installer
+    shell: sh /tmp/docker-install.sh
+
+  - name: add group docker
+    group:
+      name: docker
+
+  - name: Add current user to docker group
+    user: 
+      user: pi
+      group: docker
+      append: yes
+    become: True
+
+
+  - name: reset ssh connection (logoff/logon to get new groups)
+    meta: reset_connection
+
+
+  - name: disable swap (1/3)
+    shell: dphys-swapfile swapoff
+    become: True
+
+  - name: disable swap (2/3)
+    shell: dphys-swapfile uninstall
+    become: True
+
+  - name: disable swap (3/3)
+    shell: update-rc.d dphys-swapfile remove
+    become: True
+
+  - name: disable dphys-swapfile.service
+    shell: systemctl disable dphys-swapfile
+    become: True
+
+  - name: show swapon summary (should be empty)
+    shell: swapon --summary
+    register: swapon
+    become: True
+
+  - debug: var=swapon.stdout_lines
+
+#  - name: append boot options
+#    shell: sed 's/$/ cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory/' -i'.bak' /boot/cmdline.txt
+#    become: True
+
+  - name: Enable memory control group subsystem
+    replace:
+      # https://wiki.ubuntu.com/ARM/RaspberryPi#Raspberry_Pi_packages
+      path: /boot/cmdline.txt
+      regexp: '(rootwait)$'
+      replace: '\1 cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory'
+
+  - name: Add mappings to /etc/hosts
+    blockinfile:
+      path: /etc/hosts
+      block: |
+        {{ item.ip }} {{ item.name }}
+      marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item.name }}"
+    loop:
+      - { name: k8s-master-01, ip: 10.13.1.1 }
+      - { name: k8s-node-01, ip: 10.13.1.11 }
+      - { name: k8s-node-02, ip: 10.13.1.12 }
+      - { name: k8s-node-03, ip: 10.13.1.13 }
+      - { name: k8s-node-04, ip: 10.13.1.14 }
+      - { name: k8s-node-05, ip: 10.13.1.15 }
+      - { name: k8s-node-06, ip: 10.13.1.16 }
+      - { name: k8s-node-07, ip: 10.13.1.17 }
+    become: True
+
+  - name: Run apt-get update
+    apt:
+      update_cache: yes
+    become: True
+
+  - name: install apt-transport-https
+    apt:
+      name: apt-transport-https
+      state: present
+    become: True
+
+  - name: install curl
+    apt:
+      name: curl
+      state: present
+    become: True
+
+  - name: add apt key
+    apt_key:
+      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      state: present
+    become: True
+
+  - name: add kubernetes repo
+    apt_repository:
+      repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+      filename: kubernetes.list
+      state: present
+    become: True
+
+  - name: Run apt-get update                  
+    apt:
+      update_cache: yes
+    become: True
+
+  - name: install kubeadm 
+    apt:
+      pkg:
+      - kubelet 
+      - kubeadm
+      - kubectl
+    become: True
+
+  - name: ampt-mark hold 
+    shell: apt-mark hold kubelet kubeadm kubectl
+    become: True
