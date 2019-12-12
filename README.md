@@ -7,6 +7,18 @@ which are based on https://github.com/teamserverless/k8s-on-raspbian/blob/master
 and put the first part into an ansible-playbook.
 
 Use the following commands to run the playbooks:
+
+Perparation:
 ```
 ansible-playbook -i hosts -u pi --ask-pass prep_k8s_nodes.yml
+```
+
+Restart:
+```
+ansible-playbook -i hosts -u pi --ask-pass restart_nodes.yml 
+```
+
+Restart:
+```
+ansible-playbook -i hosts -u pi --ask-pass shutdown_nodes.yml 
 ```
