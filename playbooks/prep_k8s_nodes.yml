@@ -46,10 +46,6 @@
 
   - debug: var=swapon.stdout_lines
 
-#  - name: append boot options
-#    shell: sed 's/$/ cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory/' -i'.bak' /boot/cmdline.txt
-#    become: True
-
   - name: Enable memory control group subsystem
     replace:
       # https://wiki.ubuntu.com/ARM/RaspberryPi#Raspberry_Pi_packages
@@ -64,14 +60,13 @@
         {{ item.ip }} {{ item.name }}
       marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item.name }}"
     loop:
-      - { name: k8s-master-01, ip: 10.13.1.1 }
+      - { name: k8s-master-01, ip: 10.13.1.10 }
       - { name: k8s-node-01, ip: 10.13.1.11 }
       - { name: k8s-node-02, ip: 10.13.1.12 }
       - { name: k8s-node-03, ip: 10.13.1.13 }
       - { name: k8s-node-04, ip: 10.13.1.14 }
       - { name: k8s-node-05, ip: 10.13.1.15 }
       - { name: k8s-node-06, ip: 10.13.1.16 }
-      - { name: k8s-node-07, ip: 10.13.1.17 }
     become: True
 
   - name: Run apt-get update
@@ -117,6 +112,6 @@
       - kubectl
     become: True
 
-  - name: ampt-mark hold 
+  - name: apt-mark hold 
     shell: apt-mark hold kubelet kubeadm kubectl
     become: True
